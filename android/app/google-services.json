@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41843473703",
+    "project_id": "care-o-47782",
+    "storage_bucket": "care-o-47782.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41843473703:android:b0d2cb8526ce82cfcfbd02",
+        "android_client_info": {
+          "package_name": "com.example.careo_new1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3gpJNc4L9nx4sHzV_r8uQL1bw5SKwDDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

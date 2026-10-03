@@ -1,0 +1,49 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+**/build/
+
+# Flutter generated
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# Android
+android/.gradle/
+**/.gradle/
+android/app/build/
+android/local.properties
+*.keystore
+*.jks
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.podspec
+
+# Node (if present)
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# App bundles / binaries
+*.apk
+*.aab
+*.jar
+*.zip
+*.mp4
+# Cloud Functions build artifacts / secrets
+functions/node_modules/
+functions/lib/
+functions/.env
+functions/.env.*
+
+# IntelliJ / Android Studio project files
+*.iml
