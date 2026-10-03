@@ -6,18 +6,19 @@ class MeditationVideoScreen extends StatefulWidget {
   const MeditationVideoScreen({super.key});
 
   @override
-  _MeditationVideoScreenState createState() => _MeditationVideoScreenState();
+  State<MeditationVideoScreen> createState() =>
+      _MeditationVideoScreenState();
 }
 
 class _MeditationVideoScreenState extends State<MeditationVideoScreen> {
   final List<Map<String, String>> videos = [
     {
-      "title": "Relaxing Meditation",
-      "path": "assets/icon/meditation1.mp4",
+      'title': 'Relaxing Meditation',
+      'path': 'assets/icon/meditation1.mp4',
     },
     {
-      "title": "Mindfulness Meditation",
-      "path": "assets/icon/meditation2.mp4",
+      'title': 'Mindfulness Meditation',
+      'path': 'assets/icon/meditation2.mp4',
     },
   ];
 
@@ -25,71 +26,88 @@ class _MeditationVideoScreenState extends State<MeditationVideoScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VideoPlayerScreen(videoPath: videoPath),
+        builder: (context) => VideoPlayerScreen(
+          videoPath: videoPath,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: videos.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => _playVideo(videos[index]["path"]!),
-            child: Container(
-              height: 150,
-              margin: const EdgeInsets.only(bottom: 35),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.orange.shade100, const Color.fromARGB(255, 199, 195, 195)
-                    // const Color.fromARGB(255, 124, 206, 196).withOpacity(0.95),
-                    //Colors.orangeAccent.withOpacity(0.9),
-                    // const Color.fromARGB(255, 214, 215, 168).withOpacity(0.95),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 162, 162, 161)
-                        .withOpacity(0.5),
-                    blurRadius: 12,
-                    spreadRadius: 3,
-                    offset: const Offset(0, 6),
-                  ),
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    final Color cardStartColor = Color.alphaBlend(
+      colorScheme.primary.withValues(alpha: 0.12),
+      colorScheme.surface,
+    );
+
+    final Color cardEndColor = Color.alphaBlend(
+      colorScheme.secondary.withValues(alpha: 0.10),
+      colorScheme.surface,
+    );
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: videos.length,
+      itemBuilder: (context, index) {
+        final String title = videos[index]['title']!;
+        final String path = videos[index]['path']!;
+
+        return GestureDetector(
+          onTap: () => _playVideo(path),
+          child: Container(
+            height: 150,
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  cardStartColor,
+                  cardEndColor,
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      videos[index]["title"]!,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors
-                            .black, // 🔥 Changed to black for better contrast
-                      ),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(
+                  alpha: 0.5,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(
+                    alpha: 0.12,
+                  ),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Icon(
-                    Icons.play_circle_fill,
-                    color: Colors.black, // 🔥 White play button for visibility
-                    size: 50,
-                  ),
-                ],
-              ),
+                ),
+                Icon(
+                  Icons.play_circle_fill,
+                  color: colorScheme.primary,
+                  size: 50,
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -97,10 +115,14 @@ class _MeditationVideoScreenState extends State<MeditationVideoScreen> {
 class VideoPlayerScreen extends StatefulWidget {
   final String videoPath;
 
-  const VideoPlayerScreen({super.key, required this.videoPath});
+  const VideoPlayerScreen({
+    super.key,
+    required this.videoPath,
+  });
 
   @override
-  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
+  State<VideoPlayerScreen> createState() =>
+      _VideoPlayerScreenState();
 }
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
@@ -111,41 +133,94 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(widget.videoPath);
-    _initializeVideoPlayerFuture = _controller.initialize().then((_) {
-      setState(() {
-        _chewieController = ChewieController(
-          videoPlayerController: _controller,
-          autoPlay: true,
-          looping: false,
-        );
-      });
+
+    _controller = VideoPlayerController.asset(
+      widget.videoPath,
+    );
+
+    _initializeVideoPlayerFuture = _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    await _controller.initialize();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _chewieController = ChewieController(
+        videoPlayerController: _controller,
+        autoPlay: true,
+        looping: false,
+      );
     });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
     _chewieController?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Video Player"),
+        title: Text(
+          'Video Player',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
-      body: FutureBuilder(
+      body: FutureBuilder<void>(
         future: _initializeVideoPlayerFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
+            if (_chewieController == null) {
+              return Center(
+                child: Text(
+                  'Unable to load video.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            }
+
             return Center(
-              child: Chewie(controller: _chewieController!),
+              child: Chewie(
+                controller: _chewieController!,
+              ),
             );
-          } else {
-            return const Center(child: CircularProgressIndicator());
           }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Unable to load video.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.error,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Center(
+            child: CircularProgressIndicator(
+              color: colorScheme.primary,
+            ),
+          );
         },
       ),
     );

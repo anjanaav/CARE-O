@@ -1,8 +1,8 @@
 import 'dart:convert';
-// import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-// import 'package:path_provider/path_provider.dart';
+
 import 'file_manager.dart';
 
 class LocalSongListService {
@@ -11,75 +11,163 @@ class LocalSongListService {
   Future<void> loadSongs() async {
     try {
       final file = await FileManager.getLocalFile();
+
       if (await file.exists()) {
-        String content = await file.readAsString();
-        songs = json.decode(content);
+        final content = await file.readAsString();
+
+        final decoded = json.decode(content);
+
+        if (decoded is List) {
+          songs = decoded;
+        } else {
+          songs = [];
+        }
       } else {
         songs = [];
       }
     } catch (e) {
-      debugPrint("Error loading songs: $e");
+      songs = [];
+      debugPrint('Error loading songs: $e');
     }
   }
 
   Future<void> saveSongs() async {
-    final file = await FileManager.getLocalFile();
-    await file.writeAsString(json.encode(songs));
+    try {
+      final file = await FileManager.getLocalFile();
+
+      await file.writeAsString(
+        json.encode(songs),
+      );
+    } catch (e) {
+      debugPrint('Error saving songs: $e');
+      rethrow;
+    }
   }
 
   Future<void> addNewSong(BuildContext context) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
     );
 
-    if (result != null) {
-      String filePath = result.files.single.path!;
-      TextEditingController titleController = TextEditingController();
-      TextEditingController artistController = TextEditingController();
+    if (result == null ||
+        result.files.isEmpty ||
+        result.files.single.path == null) {
+      return;
+    }
 
-      await showDialog(
+    final filePath = result.files.single.path!;
+
+    final titleController = TextEditingController();
+    final artistController = TextEditingController();
+
+    try {
+      if (!context.mounted) return;
+
+      await showDialog<void>(
         context: context,
-        builder: (context) {
+        builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          final colorScheme = theme.colorScheme;
+
           return AlertDialog(
-            title: Text("Add New Song"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(labelText: "Song Title"),
-                ),
-                TextField(
-                  controller: artistController,
-                  decoration: InputDecoration(labelText: "Artist Name"),
-                ),
-              ],
+            title: const Text('Add New Song'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    textCapitalization:
+                        TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Song Title',
+                      prefixIcon: Icon(Icons.music_note),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: artistController,
+                    textCapitalization:
+                        TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Artist Name',
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Cancel"),
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Cancel'),
               ),
-              TextButton(
+              FilledButton(
                 onPressed: () async {
-                  if (titleController.text.isNotEmpty &&
-                      artistController.text.isNotEmpty) {
-                    songs.add({
-                      "title": titleController.text,
-                      "artist": artistController.text,
-                      "url": filePath,
-                    });
+                  final title =
+                      titleController.text.trim();
+                  final artist =
+                      artistController.text.trim();
 
+                  if (title.isEmpty || artist.isEmpty) {
+                    ScaffoldMessenger.of(dialogContext)
+                        .showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Please enter both song title and artist name.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
+                  songs.add({
+                    'title': title,
+                    'artist': artist,
+                    'url': filePath,
+                  });
+
+                  try {
                     await saveSongs();
-                    Navigator.pop(context);
+
+                    if (!dialogContext.mounted) return;
+
+                    Navigator.pop(dialogContext);
+
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          'Song added successfully.',
+                        ),
+                        backgroundColor:
+                            colorScheme.primary,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!dialogContext.mounted) return;
+
+                    ScaffoldMessenger.of(dialogContext)
+                        .showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Unable to save the song.',
+                        ),
+                      ),
+                    );
                   }
                 },
-                child: Text("Add"),
+                child: const Text('Add'),
               ),
             ],
           );
         },
       );
+    } finally {
+      titleController.dispose();
+      artistController.dispose();
     }
   }
 }

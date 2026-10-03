@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import '/screens/tic_tac_toe_screen.dart';
-import '/screens/memory_screen.dart'; // Import the new game screen
+import '/screens/memory_screen.dart';
 
 class GamesScreen extends StatelessWidget {
   const GamesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(60.0),
+        preferredSize: const Size.fromHeight(60.0),
         child: AppBar(
           title: Text(
             'Games',
-            style: TextStyle(
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: colorScheme.onSurface,
             ),
           ),
           centerTitle: true,
@@ -25,7 +28,7 @@ class GamesScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          SizedBox(height: 20.0),
+          const SizedBox(height: 20.0),
           Center(
             child: Column(
               children: [
@@ -36,7 +39,8 @@ class GamesScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TicTacToeScreen()),
+                        builder: (context) => const TicTacToeScreen(),
+                      ),
                     );
                   },
                 ),
@@ -47,7 +51,8 @@ class GamesScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => SimonSaysScreen()),
+                        builder: (context) => const SimonSaysScreen(),
+                      ),
                     );
                   },
                 ),
@@ -73,14 +78,21 @@ class _GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 20.0,
+        vertical: 10.0,
+      ),
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.8,
           height: 200,
@@ -88,12 +100,20 @@ class _GameCard extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 80, color: Colors.orangeAccent),
-              SizedBox(height: 20.0),
+              Icon(
+                icon,
+                size: 80,
+                color: colorScheme.secondary,
+              ),
+              const SizedBox(height: 20.0),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ],
           ),

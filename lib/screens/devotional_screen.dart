@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'prayers_screen.dart';
 import 'devotional_music_screen.dart';
 import 'quotes_screen.dart';
@@ -8,20 +9,35 @@ class DevotionalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Devotion'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.book), text: 'Prayers'),
-              Tab(icon: Icon(Icons.music_note), text: 'Devotion songs'),
-              Tab(icon: Icon(Icons.format_quote), text: 'Quotes'),
+          bottom: TabBar(
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
+            indicatorColor: colorScheme.primary,
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.book),
+                text: 'Prayers',
+              ),
+              Tab(
+                icon: Icon(Icons.music_note),
+                text: 'Devotion songs',
+              ),
+              Tab(
+                icon: Icon(Icons.format_quote),
+                text: 'Quotes',
+              ),
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             PrayersScreen(),
             DevotionalMusicScreen(),

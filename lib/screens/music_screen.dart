@@ -1,18 +1,20 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
 
   @override
-  _MusicScreenState createState() => _MusicScreenState();
+  State<MusicScreen> createState() => _MusicScreenState();
 }
 
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+
   List<File> songs = [];
   File? currentSong;
   bool isPlaying = false;
@@ -22,80 +24,122 @@ class _MusicScreenState extends State<MusicScreen> {
   @override
   void initState() {
     super.initState();
+
     _loadSavedSongs();
+
     _audioPlayer.onPositionChanged.listen((Duration position) {
-      setState(() => currentPosition = position);
+      if (mounted) {
+        setState(() {
+          currentPosition = position;
+        });
+      }
     });
+
     _audioPlayer.onDurationChanged.listen((Duration duration) {
-      setState(() => totalDuration = duration);
+      if (mounted) {
+        setState(() {
+          totalDuration = duration;
+        });
+      }
     });
-    _audioPlayer.onPlayerComplete.listen((event) => _playNextSong());
+
+    _audioPlayer.onPlayerComplete.listen((event) {
+      _playNextSong();
+    });
   }
 
   Future<void> pickMusicFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.audio,
       allowMultiple: true,
     );
 
     if (result != null) {
       setState(() {
-        for (String path in result.paths.whereType<String>()) {
-          File newSong = File(path);
+        for (final String path in result.paths.whereType<String>()) {
+          final File newSong = File(path);
+
           if (!songs.any((song) => song.path == newSong.path)) {
-            songs.add(newSong); // Only add if it's not already in the list
+            songs.add(newSong);
           }
         }
       });
-      _saveSongs();
+
+      await _saveSongs();
     }
   }
 
   Future<void> _saveSongs() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
     await prefs.setStringList(
-        'saved_songs', songs.map((song) => song.path).toList());
+      'saved_songs',
+      songs.map((song) => song.path).toList(),
+    );
   }
 
   Future<void> _loadSavedSongs() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String>? savedPaths = prefs.getStringList('saved_songs');
-    if (savedPaths != null) {
-      setState(() => songs = savedPaths.map((path) => File(path)).toList());
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    final List<String>? savedPaths =
+        prefs.getStringList('saved_songs');
+
+    if (savedPaths != null && mounted) {
+      setState(() {
+        songs = savedPaths.map((path) => File(path)).toList();
+      });
     }
   }
 
-  void _playPauseSong(File song) async {
-    if (currentSong == song && isPlaying) {
+  Future<void> _playPauseSong(File song) async {
+    if (currentSong?.path == song.path && isPlaying) {
       await _audioPlayer.pause();
-      setState(() => isPlaying = false);
+
+      if (mounted) {
+        setState(() {
+          isPlaying = false;
+        });
+      }
     } else {
-      await _audioPlayer.play(DeviceFileSource(song.path));
-      setState(() {
-        currentSong = song;
-        isPlaying = true;
-      });
+      await _audioPlayer.play(
+        DeviceFileSource(song.path),
+      );
+
+      if (mounted) {
+        setState(() {
+          currentSong = song;
+          isPlaying = true;
+        });
+      }
     }
   }
 
   void _playNextSong() {
     if (currentSong != null) {
-      int currentIndex = songs.indexOf(currentSong!);
-      if (currentIndex != -1 && currentIndex < songs.length - 1) {
+      final int currentIndex = songs.indexOf(currentSong!);
+
+      if (currentIndex != -1 &&
+          currentIndex < songs.length - 1) {
         _playPauseSong(songs[currentIndex + 1]);
       } else {
         _audioPlayer.stop();
-        setState(() {
-          isPlaying = false;
-          currentSong = null;
-        });
+
+        if (mounted) {
+          setState(() {
+            isPlaying = false;
+            currentSong = null;
+            currentPosition = Duration.zero;
+            totalDuration = Duration.zero;
+          });
+        }
       }
     }
   }
 
   void _playPreviousSong() {
     if (currentSong != null) {
-      int currentIndex = songs.indexOf(currentSong!);
+      final int currentIndex = songs.indexOf(currentSong!);
+
       if (currentIndex > 0) {
         _playPauseSong(songs[currentIndex - 1]);
       }
@@ -103,19 +147,29 @@ class _MusicScreenState extends State<MusicScreen> {
   }
 
   void _seekTo(double value) {
-    _audioPlayer.seek(Duration(milliseconds: value.toInt()));
+    _audioPlayer.seek(
+      Duration(milliseconds: value.toInt()),
+    );
   }
 
   void _deleteSong(File song) {
     setState(() {
       songs.remove(song);
-      if (currentSong == song) {
+
+      if (currentSong?.path == song.path) {
         _audioPlayer.stop();
         currentSong = null;
         isPlaying = false;
+        currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
       }
     });
+
     _saveSongs();
+  }
+
+  String _fileName(File file) {
+    return file.path.split(Platform.pathSeparator).last;
   }
 
   @override
@@ -126,137 +180,234 @@ class _MusicScreenState extends State<MusicScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    // Theme-aware colors.
+    final Color cardStartColor = Color.alphaBlend(
+      colorScheme.primary.withValues(alpha: 0.10),
+      colorScheme.surface,
+    );
+
+    final Color cardEndColor = Color.alphaBlend(
+      colorScheme.secondary.withValues(alpha: 0.10),
+      colorScheme.surface,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Music Player'),
+        title: Text(
+          'Music Player',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: Stack(
         children: [
           Column(
             children: [
-              Padding(
-                padding:
-                    EdgeInsets.only(top: 14), // Adjust this value as needed
-              ),
+              const SizedBox(height: 14),
+
               Expanded(
                 child: songs.isEmpty
-                    ? Center(child: Text("No songs selected"))
+                    ? Center(
+                        child: Text(
+                          'No songs selected',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
                     : ListView.builder(
+                        padding: const EdgeInsets.only(
+                          bottom: 90,
+                        ),
                         itemCount: songs.length,
                         itemBuilder: (context, index) {
+                          final File song = songs[index];
+
+                          final bool isCurrentSong =
+                              currentSong?.path == song.path;
+
+                          final double sliderMax =
+                              totalDuration.inMilliseconds > 0
+                                  ? totalDuration.inMilliseconds.toDouble()
+                                  : 1;
+
+                          final double sliderValue =
+                              isCurrentSong
+                                  ? currentPosition.inMilliseconds
+                                      .clamp(
+                                        0,
+                                        totalDuration.inMilliseconds,
+                                      )
+                                      .toDouble()
+                                  : 0;
+
                           return Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             child: Container(
-                              padding: EdgeInsets.all(8), // Reduced size
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Color.fromARGB(
-                                        255, 255, 223, 88), // Light Yellow
-                                    Color.fromARGB(
-                                        255, 255, 153, 51), // Orange-Gold
+                                    cardStartColor,
+                                    cardEndColor,
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant
+                                      .withValues(alpha: 0.5),
+                                ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black12,
+                                    color: colorScheme.shadow
+                                        .withValues(alpha: 0.10),
                                     blurRadius: 4,
                                     spreadRadius: 1,
-                                    offset: Offset(0, 1),
+                                    offset: const Offset(0, 1),
                                   ),
                                 ],
                               ),
-
                               child: Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.music_note,
-                                      color: Colors.grey[800], size: 35),
-                                  SizedBox(width: 10),
+                                  Icon(
+                                    Icons.music_note,
+                                    color: colorScheme.primary,
+                                    size: 35,
+                                  ),
+
+                                  const SizedBox(width: 10),
+
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          songs[index].path.split('/').last,
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14),
-                                          overflow: TextOverflow.ellipsis,
+                                          _fileName(song),
+                                          style: theme
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                color: colorScheme
+                                                    .onSurface,
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                              ),
+                                          overflow:
+                                              TextOverflow.ellipsis,
                                         ),
+
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
                                             IconButton(
-                                              icon: Icon(Icons.skip_previous,
-                                                  color: Colors.grey[800],
-                                                  size: 20),
-                                              onPressed: _playPreviousSong,
-                                            ),
-                                            IconButton(
+                                              tooltip:
+                                                  'Previous song',
                                               icon: Icon(
-                                                currentSong == songs[index] &&
+                                                Icons.skip_previous,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                                size: 22,
+                                              ),
+                                              onPressed:
+                                                  _playPreviousSong,
+                                            ),
+
+                                            IconButton(
+                                              tooltip: isCurrentSong &&
+                                                      isPlaying
+                                                  ? 'Pause'
+                                                  : 'Play',
+                                              icon: Icon(
+                                                isCurrentSong &&
                                                         isPlaying
-                                                    ? Icons.pause_circle
-                                                    : Icons.play_circle,
-                                                color: Colors.grey[800],
-                                                size: 35,
+                                                    ? Icons
+                                                        .pause_circle
+                                                    : Icons
+                                                        .play_circle,
+                                                color: colorScheme
+                                                    .primary,
+                                                size: 38,
                                               ),
                                               onPressed: () =>
-                                                  _playPauseSong(songs[index]),
+                                                  _playPauseSong(song),
                                             ),
+
                                             IconButton(
-                                              icon: Icon(Icons.skip_next,
-                                                  color: Colors.grey[800],
-                                                  size: 20),
-                                              onPressed: _playNextSong,
+                                              tooltip: 'Next song',
+                                              icon: Icon(
+                                                Icons.skip_next,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                                size: 22,
+                                              ),
+                                              onPressed:
+                                                  _playNextSong,
                                             ),
                                           ],
                                         ),
+
                                         Slider(
-                                          value: currentSong == songs[index]
-                                              ? currentPosition.inMilliseconds
-                                                  .clamp(
-                                                      0,
-                                                      totalDuration
-                                                          .inMilliseconds)
-                                                  .toDouble()
-                                              : 0,
-                                          max: totalDuration.inMilliseconds
-                                                      .toDouble() >
-                                                  0
-                                              ? totalDuration.inMilliseconds
-                                                  .toDouble()
-                                              : 1, // Prevents division by zero
-                                          activeColor: Colors.grey[800],
-                                          inactiveColor: Colors.grey[300],
-                                          onChanged: (value) => _seekTo(value),
+                                          value: sliderValue,
+                                          max: sliderMax,
+                                          activeColor:
+                                              colorScheme.primary,
+                                          inactiveColor: colorScheme
+                                              .onSurfaceVariant
+                                              .withValues(alpha: 0.25),
+                                          onChanged:
+                                              isCurrentSong
+                                                  ? _seekTo
+                                                  : null,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  // Three-Dotted Menu Button
+
                                   PopupMenuButton<String>(
+                                    tooltip: 'More options',
+                                    icon: Icon(
+                                      Icons.more_vert,
+                                      color:
+                                          colorScheme.onSurfaceVariant,
+                                    ),
                                     onSelected: (value) {
                                       if (value == 'delete') {
-                                        _deleteSong(
-                                            songs[index]); // Delete song action
+                                        _deleteSong(song);
                                       }
                                     },
-                                    itemBuilder: (BuildContext context) => [
-                                      PopupMenuItem(
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem<String>(
                                         value: 'delete',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.delete,
-                                                color: Colors.red),
-                                            SizedBox(width: 10),
-                                            Text("Delete"),
+                                            Icon(
+                                              Icons.delete_outline,
+                                              color:
+                                                  colorScheme.error,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              'Delete',
+                                              style: TextStyle(
+                                                color: colorScheme
+                                                    .onSurface,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -271,16 +422,20 @@ class _MusicScreenState extends State<MusicScreen> {
               ),
             ],
           ),
+
           Positioned(
-            bottom: 10,
-            left: 10,
+            bottom: 16,
+            left: 16,
             child: FloatingActionButton(
+              tooltip: 'Add music',
               onPressed: pickMusicFiles,
-              backgroundColor: Colors.orange,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
+                borderRadius: BorderRadius.circular(15),
+              ),
               elevation: 6,
-              child: Icon(Icons.add, color: Colors.grey[800]),
+              child: const Icon(Icons.add),
             ),
           ),
         ],

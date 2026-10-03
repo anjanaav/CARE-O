@@ -8,28 +8,48 @@ class MeditationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+
     return DefaultTabController(
-      length: 3, // Number of tabs
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Meditation'),
+          title: Text(
+            'Meditation',
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           centerTitle: true,
-          bottom: const TabBar(
-            indicatorColor: Colors.orange,
+          bottom: TabBar(
+            indicatorColor: colorScheme.primary,
             indicatorWeight: 3,
-            tabs: [
-              Tab(icon: Icon(Icons.play_circle_fill), text: "Videos"),
-              Tab(icon: Icon(Icons.air), text: "Breathing"),
-              Tab(icon: Icon(Icons.sports_gymnastics), text: "Yoga"),
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.play_circle_fill),
+                text: 'Videos',
+              ),
+              Tab(
+                icon: Icon(Icons.air),
+                text: 'Breathing',
+              ),
+              Tab(
+                icon: Icon(Icons.sports_gymnastics),
+                text: 'Yoga',
+              ),
             ],
           ),
           elevation: 4,
         ),
         body: TabBarView(
           children: [
-            const MeditationVideoScreen(), // Videos
-            const BreathingExerciseScreen(), // Breathing
-            YogaScreen(), // Yoga
+            MeditationVideoScreen(),
+            BreathingExerciseScreen(),
+            YogaScreen(),
           ],
         ),
       ),

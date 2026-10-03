@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -9,14 +10,23 @@ class Prayer {
   String title;
   String content;
 
-  Prayer({required this.title, required this.content});
+  Prayer({
+    required this.title,
+    required this.content,
+  });
 
   factory Prayer.fromJson(Map<String, dynamic> json) {
-    return Prayer(title: json['title'], content: json['content']);
+    return Prayer(
+      title: json['title'],
+      content: json['content'],
+    );
   }
 
   Map<String, dynamic> toJson() {
-    return {'title': title, 'content': content};
+    return {
+      'title': title,
+      'content': content,
+    };
   }
 }
 
@@ -36,45 +46,63 @@ class PrayerStorage {
   static Future<List<Prayer>> loadPrayers() async {
     try {
       final file = await _localFile;
+
       if (!await file.exists()) {
-        String assetData =
+        final assetData =
             await rootBundle.loadString('assets/icon/prayers.json');
-        List<dynamic> jsonData = json.decode(assetData);
-        return jsonData.map((data) => Prayer.fromJson(data)).toList();
+
+        final List<dynamic> jsonData = json.decode(assetData);
+
+        return jsonData
+            .map((data) => Prayer.fromJson(data))
+            .toList();
       }
-      String contents = await file.readAsString();
-      if (contents.trim().isEmpty) return []; // ✅ Handle empty file case
-      List<dynamic> jsonData = json.decode(contents);
-      return jsonData.map((data) => Prayer.fromJson(data)).toList();
+
+      final contents = await file.readAsString();
+
+      if (contents.trim().isEmpty) {
+        return [];
+      }
+
+      final List<dynamic> jsonData = json.decode(contents);
+
+      return jsonData
+          .map((data) => Prayer.fromJson(data))
+          .toList();
     } catch (e) {
-      debugPrint("❌ Error loading prayers: $e");
+      debugPrint('Error loading prayers: $e');
       return [];
     }
   }
 
-  /// Saves prayers to JSON file
+  /// Saves prayers to local JSON file
   static Future<void> savePrayers(List<Prayer> prayers) async {
-    final file = await _localFile;
-    if (prayers.isEmpty) {
-      await file.writeAsString("[]"); // ✅ Save empty array if no prayers left
-    } else {
-      String jsonString = json.encode(prayers.map((p) => p.toJson()).toList());
-      await file.writeAsString(jsonString);
+    try {
+      final file = await _localFile;
+
+      final jsonData = prayers
+          .map((prayer) => prayer.toJson())
+          .toList();
+
+      await file.writeAsString(
+        json.encode(jsonData),
+      );
+    } catch (e) {
+      debugPrint('Error saving prayers: $e');
     }
   }
 }
 
-/// Prayers Screen UI
 class PrayersScreen extends StatefulWidget {
   const PrayersScreen({super.key});
 
   @override
-  _PrayersScreenState createState() => _PrayersScreenState();
+  State<PrayersScreen> createState() => _PrayersScreenState();
 }
 
 class _PrayersScreenState extends State<PrayersScreen> {
   List<Prayer> prayers = [];
-  bool isLoading = true; // ✅ Added loading state
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -82,40 +110,59 @@ class _PrayersScreenState extends State<PrayersScreen> {
     _loadPrayers();
   }
 
-  /// Loads prayers from JSON and updates UI
+  /// Loads prayers
   Future<void> _loadPrayers() async {
-    List<Prayer> loadedPrayers = await PrayerStorage.loadPrayers();
+    setState(() {
+      isLoading = true;
+    });
+
+    final loadedPrayers = await PrayerStorage.loadPrayers();
+
+    if (!mounted) return;
+
     setState(() {
       prayers = loadedPrayers;
-      isLoading = false; // ✅ Stop buffering once loaded
+      isLoading = false;
     });
   }
 
   /// Adds a new prayer
-  Future<void> _addPrayer() async {
-    TextEditingController titleController = TextEditingController();
-    TextEditingController contentController = TextEditingController();
+  void _addPrayer() {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
 
-    await showDialog(
+    showDialog(
       context: context,
       builder: (context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          title:
-              Text("Add Prayer", style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+            'Add Prayer',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: InputDecoration(labelText: "Title"),
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: contentController,
-                decoration: InputDecoration(labelText: "Content"),
+                decoration: const InputDecoration(
+                  labelText: 'Content',
+                ),
                 maxLines: 3,
               ),
             ],
@@ -123,29 +170,39 @@ class _PrayersScreenState extends State<PrayersScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Cancel"),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () async {
                 if (titleController.text.isNotEmpty &&
                     contentController.text.isNotEmpty) {
-                  List<Prayer> updatedPrayers =
+                  final updatedPrayers =
                       await PrayerStorage.loadPrayers();
 
-                  updatedPrayers.add(Prayer(
+                  updatedPrayers.add(
+                    Prayer(
                       title: titleController.text,
-                      content: contentController.text));
+                      content: contentController.text,
+                    ),
+                  );
 
                   await PrayerStorage.savePrayers(updatedPrayers);
-                  _loadPrayers();
+
+                  if (!mounted) return;
+
+                  await _loadPrayers();
                 }
-                Navigator.pop(context);
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               },
-              child: Text("Add", style: TextStyle(color: Colors.black)),
+              child: const Text('Add'),
             ),
           ],
         );
@@ -154,74 +211,104 @@ class _PrayersScreenState extends State<PrayersScreen> {
   }
 
   /// Deletes a prayer
-  void _deletePrayer(int index) async {
+  Future<void> _deletePrayer(int index) async {
     setState(() {
       prayers.removeAt(index);
     });
+
     await PrayerStorage.savePrayers(prayers);
-    _loadPrayers(); // ✅ Reload after deletion
+
+    if (mounted) {
+      await _loadPrayers();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Color(0xFFF7F7F7),
+      backgroundColor: colorScheme.surface,
       body: isLoading
           ? Center(
-              child:
-                  CircularProgressIndicator()) // ✅ Show loader while fetching
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
+              ),
+            )
           : prayers.isEmpty
               ? Center(
                   child: Text(
-                    "No prayers available. Add a new one!",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'No prayers available. Add a new one!',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(15),
                   itemCount: prayers.length,
                   itemBuilder: (context, index) {
                     return Card(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       elevation: 5,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      margin: EdgeInsets.symmetric(vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        vertical: 8,
+                      ),
                       child: ListTile(
-                        contentPadding: EdgeInsets.all(15),
+                        contentPadding: const EdgeInsets.all(15),
                         title: Text(
                           prayers[index].title,
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                         subtitle: Text(
                           prayers[index].content,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              TextStyle(fontSize: 14, color: Colors.grey[700]),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 14,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        onTap: () => _showPrayerDetail(context, prayers[index]),
+                        onTap: () => _showPrayerDetail(
+                          context,
+                          prayers[index],
+                        ),
                         trailing: PopupMenuButton<String>(
                           onSelected: (value) {
-                            if (value == "delete") {
+                            if (value == 'delete') {
                               _deletePrayer(index);
                             }
                           },
                           itemBuilder: (context) => [
                             PopupMenuItem(
-                              value: "delete",
+                              value: 'delete',
                               child: Row(
                                 children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text("Delete"),
+                                  Icon(
+                                    Icons.delete,
+                                    color: colorScheme.error,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text('Delete'),
                                 ],
                               ),
                             ),
                           ],
-                          icon: Icon(Icons.more_vert), // Three-dotted menu icon
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     );
@@ -229,27 +316,47 @@ class _PrayersScreenState extends State<PrayersScreen> {
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addPrayer,
-        child: Icon(Icons.add, color: Colors.black),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        child: const Icon(Icons.add),
       ),
     );
   }
 
   /// Shows detailed prayer view
-  void _showPrayerDetail(BuildContext context, Prayer prayer) {
+  void _showPrayerDetail(
+    BuildContext context,
+    Prayer prayer,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title:
-              Text(prayer.title, style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Text(
+            prayer.title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
           content: SingleChildScrollView(
-            child: Text(prayer.content, style: TextStyle(fontSize: 16)),
+            child: Text(
+              prayer.content,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontSize: 16,
+                color: colorScheme.onSurface,
+              ),
+            ),
           ),
           actions: [
             TextButton(
-              child: Text("Close"),
+              child: const Text('Close'),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

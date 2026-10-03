@@ -6,7 +6,7 @@ class HelplineScreen extends StatefulWidget {
   const HelplineScreen({super.key});
 
   @override
-  _HelplineScreenState createState() => _HelplineScreenState();
+  State<HelplineScreen> createState() => _HelplineScreenState();
 }
 
 class _HelplineScreenState extends State<HelplineScreen> {
@@ -41,8 +41,10 @@ class _HelplineScreenState extends State<HelplineScreen> {
     },
   ];
 
-  final TextEditingController _customNumberController = TextEditingController();
-  String _customEmergencyNumber = '112'; // Default emergency number
+  final TextEditingController _customNumberController =
+      TextEditingController();
+
+  String _customEmergencyNumber = '112';
 
   @override
   void initState() {
@@ -50,8 +52,17 @@ class _HelplineScreenState extends State<HelplineScreen> {
     _loadCustomEmergencyNumber();
   }
 
+  @override
+  void dispose() {
+    _customNumberController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCustomEmergencyNumber() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
+
     setState(() {
       _customEmergencyNumber =
           prefs.getString('customEmergencyNumber') ?? '112';
@@ -59,118 +70,230 @@ class _HelplineScreenState extends State<HelplineScreen> {
   }
 
   Future<void> _saveCustomEmergencyNumber() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String newNumber = _customNumberController.text.trim();
-    if (newNumber.isNotEmpty) {
-      await prefs.setString('customEmergencyNumber', newNumber);
-      setState(() {
-        _customEmergencyNumber = newNumber;
-      });
+    final prefs = await SharedPreferences.getInstance();
+    final String newNumber = _customNumberController.text.trim();
+
+    if (newNumber.isEmpty) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Custom Emergency Number Set: $newNumber')),
+        const SnackBar(
+          content: Text('Please enter an emergency number.'),
+        ),
       );
+      return;
     }
+
+    await prefs.setString('customEmergencyNumber', newNumber);
+
+    if (!mounted) return;
+
+    setState(() {
+      _customEmergencyNumber = newNumber;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Custom Emergency Number Set: $newNumber'),
+      ),
+    );
   }
 
   Future<void> _callHelpline(String number) async {
-    final Uri phoneUri = Uri.parse("tel:$number");
+    final Uri phoneUri = Uri.parse('tel:$number');
 
     try {
-      bool launched = await launchUrl(phoneUri);
+      final bool launched = await launchUrl(phoneUri);
+
       if (!launched) {
-        debugPrint("Could not launch $number");
+        debugPrint('Could not launch $number');
       }
     } catch (e) {
-      debugPrint("Error launching URL: $e");
+      debugPrint('Error launching URL: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Helpline'),
-        elevation: 4,
+        elevation: 2,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              'Emergency Helpline Numbers:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Emergency Helpline Numbers',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
             ),
+
             const SizedBox(height: 10),
+
             Expanded(
               child: ListView.builder(
                 itemCount: helplineNumbers.length,
                 itemBuilder: (context, index) {
                   final helpline = helplineNumbers[index];
+
                   return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    elevation: 2,
+                    color: colorScheme.surface,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    elevation: 3,
-                    child: ListTile(
-                      leading: Icon(
-                        _getIcon(helpline['icon']!),
-                        color: _getColor(helpline['color']!),
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outlineVariant,
                       ),
-                      title: Text(helpline['title']!),
-                      subtitle: Text(helpline['subtitle']!),
-                      trailing: const Icon(Icons.call, color: Colors.green),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: _getColor(
+                            helpline['color']!,
+                            colorScheme,
+                          ).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _getIcon(helpline['icon']!),
+                          color: _getColor(
+                            helpline['color']!,
+                            colorScheme,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        helpline['title']!,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        helpline['subtitle']!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.call,
+                        color: colorScheme.primary,
+                      ),
                       onTap: () => _callHelpline(helpline['number']!),
                     ),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Custom Emergency Number Input
+            const SizedBox(height: 16),
+
             TextField(
               controller: _customNumberController,
               keyboardType: TextInputType.phone,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+              ),
               decoration: InputDecoration(
                 labelText: 'Enter Custom Emergency Number',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                prefixIcon: const Icon(Icons.phone),
+                labelStyle: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                prefixIcon: Icon(
+                  Icons.phone,
+                  color: colorScheme.primary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: colorScheme.outline,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
               ),
             ),
+
             const SizedBox(height: 10),
 
-            // Button to Save Custom Emergency Number
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 30,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.save),
+                label: const Text(
+                  'Set Custom Number',
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+                onPressed: _saveCustomEmergencyNumber,
               ),
-              icon: const Icon(Icons.save, color: Colors.white),
-              label: const Text('Set Custom Number',
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
-              onPressed: _saveCustomEmergencyNumber,
             ),
-            const SizedBox(height: 20),
 
-            // Emergency SOS Button with Custom Number
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 30,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.sos),
+                label: Text(
+                  'Emergency SOS (Call $_customEmergencyNumber)',
+                  style: const TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+                onPressed: () => _callHelpline(_customEmergencyNumber),
               ),
-              icon: const Icon(Icons.sos, color: Colors.white),
-              label: Text(
-                'Emergency SOS (Call $_customEmergencyNumber)',
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-              onPressed: () => _callHelpline(_customEmergencyNumber),
             ),
+
+            const SizedBox(height: 4),
           ],
         ),
       ),
@@ -192,18 +315,25 @@ class _HelplineScreenState extends State<HelplineScreen> {
     }
   }
 
-  Color _getColor(String colorName) {
+  Color _getColor(
+    String colorName,
+    ColorScheme colorScheme,
+  ) {
     switch (colorName) {
       case 'red':
-        return Colors.red;
+        return colorScheme.error;
+
       case 'blue':
-        return Colors.blue;
+        return colorScheme.primary;
+
       case 'black':
-        return Colors.black;
+        return colorScheme.onSurface;
+
       case 'green':
-        return Colors.green;
+        return colorScheme.secondary;
+
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 }
