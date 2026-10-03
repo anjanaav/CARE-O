@@ -38,7 +38,7 @@ node_modules/
 *.aab
 *.jar
 *.zip
-*.mp4
+
 # Cloud Functions build artifacts / secrets
 functions/node_modules/
 functions/lib/
