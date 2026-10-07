@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../features/guardian/presentation/guardian_alerts_screen.dart';
+import '../../features/guardian/presentation/guardian_calls_screen.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
-
+import '../../features/guardian/presentation/guardian_dashboard_screen.dart';
+import '../../features/guardian/presentation/guardian_seniors_screen.dart';
+import '../../features/guardian/presentation/guardian_screen.dart';
+import '../../features/social/presentation/video_call_screen.dart';
 import '../../features/home/presentation/app_shell.dart';
 import '../../features/home/presentation/home_dashboard_screen.dart';
 import '../../features/home/presentation/wellness_tab_screen.dart';
@@ -19,11 +23,6 @@ import '../../features/notifications/presentation/notification_preferences_scree
 import '../../features/help/presentation/help_support_screen.dart';
 
 import '../../features/guardian/presentation/guardian_app_shell.dart';
-import '../../features/guardian/presentation/guardian_dashboard_screen.dart';
-import '../../features/guardian/presentation/guardian_seniors_screen.dart';
-import '../../features/guardian/presentation/guardian_screen.dart';
-
-import '../../features/social/presentation/video_call_screen.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
@@ -44,9 +43,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/',
-
     refreshListenable: refreshNotifier,
-
     redirect: (context, state) {
       final authState = ref.read(authStateProvider);
       final profileState = ref.read(profileProvider);
@@ -110,8 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ------------------------------------------------------------
 
       final isGuardianRoute =
-          location == '/guardian' ||
-          location.startsWith('/guardian/');
+          location == '/guardian' || location.startsWith('/guardian/');
 
       if (role == 'guardian' && !isGuardianRoute) {
         return '/guardian';
@@ -127,7 +123,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       return null;
     },
-
     routes: [
       // ============================================================
       // ROOT
@@ -300,34 +295,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
 
           // ALERTS
-          //
-          // Dedicated screen does not exist yet.
-          // Use the Guardian dashboard until implemented.
+// ALERTS
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/guardian/alerts',
                 builder: (context, state) {
-                  return const GuardianDashboardScreen();
+                  return GuardianAlertsScreen();
                 },
               ),
             ],
           ),
 
           // CALLS
-          //
-          // Dedicated screen does not exist yet.
-          // Use the Guardian dashboard until implemented.
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/guardian/calls',
-                builder: (context, state) {
-                  return const GuardianDashboardScreen();
-                },
-              ),
-            ],
-          ),
+StatefulShellBranch(
+  routes: [
+    GoRoute(
+      path: '/guardian/calls',
+      builder: (context, state) {
+        return const GuardianCallsScreen();
+      },
+    ),
+  ],
+),
 
           // GUARDIAN PROFILE
           //
@@ -353,8 +343,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/connect/video-call/:channel',
         builder: (context, state) {
-          final channelName =
-              state.pathParameters['channel'] ?? '';
+          final channelName = state.pathParameters['channel'] ?? '';
 
           return VideoCallScreen(
             channelName: channelName,

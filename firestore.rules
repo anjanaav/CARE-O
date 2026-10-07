@@ -3,71 +3,84 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =========================================================
-    // USER DATA
-    // =========================================================
-
+    // ============================================================
+    // USERS
+    // ============================================================
     match /users/{userId} {
 
-      // User profile
+      // A user can manage their own profile.
       allow read, update, delete: if request.auth != null
         && request.auth.uid == userId;
 
+      // A user can create their own profile.
       allow create: if request.auth != null
         && request.auth.uid == userId;
 
+      // A Guardian can read Senior profiles.
+      allow get: if request.auth != null
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == 'guardian'
+        && resource.data.role == 'senior';
 
-      // =======================================================
-      // MEDICATION
-      // =======================================================
 
+      // ==========================================================
+      // MEDICATION REMINDERS
+      // ==========================================================
       match /medication_reminders/{reminderId} {
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
       }
 
+
+      // ==========================================================
+      // MEDICATION INTAKE
+      // ==========================================================
       match /medication_intake/{intakeId} {
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
       }
 
 
-      // =======================================================
-      // FAMILY & CARE CIRCLE
-      // =======================================================
-
+      // ==========================================================
+      // GUARDIANS
+      // ==========================================================
       match /guardians/{guardianId} {
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
       }
 
 
-      // =======================================================
+      // ==========================================================
       // NOTIFICATION QUEUE
-      // =======================================================
-
+      // ==========================================================
       match /notification_queue/{queueItemId} {
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
       }
 
 
-      // =======================================================
-      // SENIOR → GUARDIAN CONNECTION
-      // =======================================================
-
+      // ==========================================================
+      // CONNECTED GUARDIANS
+      // ==========================================================
       match /connected_guardians/{guardianId} {
 
-        // Senior can manage their own connections.
+        // The Senior who owns this collection can manage
+        // their connected Guardians.
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
 
-        // Connected Guardian can read their own relationship.
+        // A Guardian can read their own connection document.
         allow read: if request.auth != null
           && request.auth.uid == guardianId;
 
-        // Guardian can create their own connection record only
-        // when backed by a valid, unused CARE connection code.
+        // A Guardian can delete their own connection document.
+        // Required when the Guardian disconnects from a Senior.
+        allow delete: if request.auth != null
+          && request.auth.uid == guardianId;
+
+        // A Guardian can create their own connection document
+        // when connecting to a Senior using a valid code.
         allow create: if request.auth != null
           && request.auth.uid == guardianId
           && request.resource.data.guardianUid == request.auth.uid
@@ -85,47 +98,46 @@ service cloud.firestore {
       }
 
 
-      // =======================================================
-      // GUARDIAN → SENIOR CONNECTION
-      // =======================================================
-
+      // ==========================================================
+      // CONNECTED SENIORS
+      // ==========================================================
       match /connected_seniors/{seniorId} {
 
-        // Guardian manages their own connected seniors.
+        // The Guardian who owns this collection can manage
+        // their connected Seniors.
         allow read, write: if request.auth != null
           && request.auth.uid == userId;
 
-        // Connected Senior can read their relationship.
+        // The connected Senior can read their own relationship.
         allow read: if request.auth != null
+          && request.auth.uid == seniorId;
+
+        // The connected Senior can delete their own relationship.
+        // Required when a Senior disconnects from a Guardian.
+        allow delete: if request.auth != null
           && request.auth.uid == seniorId;
       }
     }
 
 
-    // =========================================================
+    // ============================================================
     // GUARDIAN CONNECTION CODES
-    // =========================================================
-
+    // ============================================================
     match /guardian_connection_codes/{code} {
 
-      // Guardian can retrieve an explicitly entered code.
-      // Collection listing remains disabled.
+      // Authenticated users can retrieve a specific code.
       allow get: if request.auth != null;
 
-
-      // Only the Senior whose UID is stored in the document
-      // can create a connection code.
+      // A Senior can create their own connection code.
       allow create: if request.auth != null
         && request.resource.data.seniorUid == request.auth.uid
         && request.resource.data.used == false;
 
-
-      // Senior can update or delete their own code.
+      // The Senior who created the code can update/delete it.
       allow update, delete: if request.auth != null
         && resource.data.seniorUid == request.auth.uid;
 
-
-      // Guardian can mark a valid unused code as used.
+      // A Guardian can mark an unused code as used.
       allow update: if request.auth != null
         && resource.data.used == false
         && request.resource.data.used == true
@@ -136,26 +148,23 @@ service cloud.firestore {
         && request.resource.data.seniorUid is string
         && resource.data.expiresAt > request.time;
 
-
-      // No collection listing.
+      // Prevent collection-wide listing of connection codes.
       allow list: if false;
     }
 
 
-    // =========================================================
+    // ============================================================
     // BREATHING SESSIONS
-    // =========================================================
-
+    // ============================================================
     match /breathing_sessions/{userId} {
       allow read, write: if request.auth != null
         && request.auth.uid == userId;
     }
 
 
-    // =========================================================
-    // EVERYTHING ELSE DENIED
-    // =========================================================
-
+    // ============================================================
+    // DEFAULT DENY
+    // ============================================================
     match /{document=**} {
       allow read, write: if false;
     }
