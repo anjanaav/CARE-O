@@ -3,42 +3,159 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Each user's own document under /users/{uid}
+    // =========================================================
+    // USER DATA
+    // =========================================================
+
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Medication reminders, nested under the owning user.
+      // User profile
+      allow read, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+
+      allow create: if request.auth != null
+        && request.auth.uid == userId;
+
+
+      // =======================================================
+      // MEDICATION
+      // =======================================================
+
       match /medication_reminders/{reminderId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
       }
 
-      // Medication intake history, nested under the owning user.
       match /medication_intake/{intakeId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
       }
 
-      // Guardian / trusted contact entries, nested under the owning user.
+
+      // =======================================================
+      // FAMILY & CARE CIRCLE
+      // =======================================================
+
       match /guardians/{guardianId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
       }
 
-      // Queued outbound notifications (e.g. "missed medication" alerts
-      // destined for Family & Care Circle members). A future Cloud
-      // Function, running with admin privileges, is what actually
-      // delivers these — see lib/features/notifications/README.md. The
-      // app itself only ever reads/writes its own queue.
+
+      // =======================================================
+      // NOTIFICATION QUEUE
+      // =======================================================
+
       match /notification_queue/{queueItemId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+      }
+
+
+      // =======================================================
+      // SENIOR → GUARDIAN CONNECTION
+      // =======================================================
+
+      match /connected_guardians/{guardianId} {
+
+        // Senior can manage their own connections.
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+
+        // Connected Guardian can read their own relationship.
+        allow read: if request.auth != null
+          && request.auth.uid == guardianId;
+
+        // Guardian can create their own connection record only
+        // when backed by a valid, unused CARE connection code.
+        allow create: if request.auth != null
+          && request.auth.uid == guardianId
+          && request.resource.data.guardianUid == request.auth.uid
+          && request.resource.data.status == 'connected'
+          && request.resource.data.connectionCode is string
+          && get(
+            /databases/$(database)/documents/guardian_connection_codes/$(request.resource.data.connectionCode)
+          ).data.seniorUid == userId
+          && get(
+            /databases/$(database)/documents/guardian_connection_codes/$(request.resource.data.connectionCode)
+          ).data.used == false
+          && get(
+            /databases/$(database)/documents/guardian_connection_codes/$(request.resource.data.connectionCode)
+          ).data.expiresAt > request.time;
+      }
+
+
+      // =======================================================
+      // GUARDIAN → SENIOR CONNECTION
+      // =======================================================
+
+      match /connected_seniors/{seniorId} {
+
+        // Guardian manages their own connected seniors.
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId;
+
+        // Connected Senior can read their relationship.
+        allow read: if request.auth != null
+          && request.auth.uid == seniorId;
       }
     }
 
-    // Breathing streak doc, one per user, doc id == uid (existing structure).
-    match /breathing_sessions/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // =========================================================
+    // GUARDIAN CONNECTION CODES
+    // =========================================================
+
+    match /guardian_connection_codes/{code} {
+
+      // Guardian can retrieve an explicitly entered code.
+      // Collection listing remains disabled.
+      allow get: if request.auth != null;
+
+
+      // Only the Senior whose UID is stored in the document
+      // can create a connection code.
+      allow create: if request.auth != null
+        && request.resource.data.seniorUid == request.auth.uid
+        && request.resource.data.used == false;
+
+
+      // Senior can update or delete their own code.
+      allow update, delete: if request.auth != null
+        && resource.data.seniorUid == request.auth.uid;
+
+
+      // Guardian can mark a valid unused code as used.
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.seniorUid == resource.data.seniorUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && request.resource.data.seniorUid is string
+        && resource.data.expiresAt > request.time;
+
+
+      // No collection listing.
+      allow list: if false;
     }
 
-    // Deny everything else by default.
+
+    // =========================================================
+    // BREATHING SESSIONS
+    // =========================================================
+
+    match /breathing_sessions/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+
+    // =========================================================
+    // EVERYTHING ELSE DENIED
+    // =========================================================
+
     match /{document=**} {
       allow read, write: if false;
     }
