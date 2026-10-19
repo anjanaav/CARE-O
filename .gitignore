@@ -47,3 +47,5 @@ functions/.env.*
 
 # IntelliJ / Android Studio project files
 *.iml
+
+/android/.kotlin/
