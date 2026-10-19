@@ -15,13 +15,21 @@ import '../../features/home/presentation/home_dashboard_screen.dart';
 import '../../features/home/presentation/wellness_tab_screen.dart';
 import '../../features/home/presentation/activities_tab_screen.dart';
 import '../../features/home/presentation/connect_tab_screen.dart';
-
+import '../../screens/breathing_exercise_screen.dart';
+import '../../screens/games_screen.dart';
+import '../../screens/memory_screen.dart' show SimonSaysScreen;
+import '../../screens/music_screen.dart';
+import '../../screens/devotional_screen.dart';
+import '../../screens/quotes_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 
 import '../../features/notifications/presentation/notification_preferences_screen.dart';
 import '../../features/help/presentation/help_support_screen.dart';
-
+import '../../screens/fitness_screen.dart';
+import '../../screens/meditation_screen.dart';
+import '../../screens/medication_reminders_screen.dart';
+import '../../screens/entertainment_screen.dart';
 import '../../features/guardian/presentation/guardian_app_shell.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
@@ -233,7 +241,90 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // ============================================================
+      // WELLNESS FEATURE ROUTES
+      // ============================================================
 
+      GoRoute(
+        path: '/wellness/fitness',
+        builder: (context, state) => const FitnessScreen(),
+      ),
+
+      GoRoute(
+        path: '/wellness/meditation',
+        builder: (context, state) => const MeditationScreen(),
+      ),
+
+      GoRoute(
+        path: '/wellness/medication-reminders',
+        builder: (context, state) => const MedicationRemindersScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES FEATURE ROUTES
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/entertainment',
+        builder: (context, state) => const EntertainmentScreen(),
+      ),
+      
+
+            // ============================================================
+      // WELLNESS: BREATHING
+      // ============================================================
+
+      GoRoute(
+        path: '/wellness/breathing',
+        builder: (context, state) =>
+            const BreathingExerciseScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES: GAMES
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/games',
+        builder: (context, state) => const GamesScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES: MEMORY
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/memory',
+        builder: (context, state) => const SimonSaysScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES: MUSIC
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/music',
+        builder: (context, state) => const MusicScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES: DEVOTIONAL
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/devotional',
+        builder: (context, state) => const DevotionalScreen(),
+      ),
+
+      // ============================================================
+      // ACTIVITIES: QUOTES
+      // ============================================================
+
+      GoRoute(
+        path: '/activities/quotes',
+        builder: (context, state) => const QuotesScreen(),
+      ),
+      
       // ============================================================
       // PROFILE SUB-PAGES
       // ============================================================

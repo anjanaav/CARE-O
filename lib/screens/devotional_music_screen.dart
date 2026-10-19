@@ -12,16 +12,20 @@ class DevotionalMusicScreen extends StatefulWidget {
       _DevotionalMusicScreenState();
 }
 
-class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
+class _DevotionalMusicScreenState
+    extends State<DevotionalMusicScreen> {
   final LocalSongListService _songList = LocalSongListService();
 
   late final LocalMusicPlayerService _musicPlayer;
 
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController =
+      TextEditingController();
 
   List<dynamic> _searchResults = [];
 
   bool _isSearching = false;
+  bool _isClearingSongs = false;
+
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
 
@@ -31,12 +35,12 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
 
     _musicPlayer = LocalMusicPlayerService(
       onSongChanged: () {
-        if (mounted) {
-          setState(() {
-            _currentPosition = Duration.zero;
-            _totalDuration = Duration.zero;
-          });
-        }
+        if (!mounted) return;
+
+        setState(() {
+          _currentPosition = Duration.zero;
+          _totalDuration = Duration.zero;
+        });
       },
     );
 
@@ -72,7 +76,8 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
       if (!mounted) return;
 
       setState(() {
-        _musicPlayer.songs = List<dynamic>.from(_songList.songs);
+        _musicPlayer.songs =
+            List<dynamic>.from(_songList.songs);
       });
     } catch (e) {
       debugPrint('Error loading devotional songs: $e');
@@ -84,6 +89,99 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
           content: Text('Unable to load devotional songs.'),
         ),
       );
+    }
+  }
+
+  Future<void> _clearAllSongs() async {
+    if (_isClearingSongs) return;
+
+    if (_songList.songs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('There are no saved songs to clear.'),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.delete_outline),
+        title: const Text('Clear all devotional songs?'),
+        content: const Text(
+          'This removes all saved song entries from CARE-O. '
+          'The original audio files on your device will not be deleted.\n\n'
+          'Do you want to continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(false);
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(true);
+            },
+            child: const Text('Clear all'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _isClearingSongs = true;
+    });
+
+    try {
+      // Stop playback before clearing the saved song list.
+      await _musicPlayer.audioPlayer.stop();
+
+      // Clears the JSON entries only, not the audio files.
+      await _songList.clearSongs();
+
+      if (!mounted) return;
+
+      setState(() {
+        _musicPlayer.songs = [];
+        _musicPlayer.currentIndex = 0;
+        _musicPlayer.isPlaying = false;
+
+        _searchController.clear();
+        _searchResults = [];
+        _isSearching = false;
+
+        _currentPosition = Duration.zero;
+        _totalDuration = Duration.zero;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All saved devotional songs have been cleared.'),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error clearing devotional songs: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to clear songs. Please try again.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isClearingSongs = false;
+        });
+      }
     }
   }
 
@@ -118,8 +216,10 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
     final results = _songList.songs.where((song) {
       if (song is! Map) return false;
 
-      final title = song['title']?.toString().toLowerCase() ?? '';
-      final artist = song['artist']?.toString().toLowerCase() ?? '';
+      final title =
+          song['title']?.toString().toLowerCase() ?? '';
+      final artist =
+          song['artist']?.toString().toLowerCase() ?? '';
 
       return title.contains(normalizedQuery) ||
           artist.contains(normalizedQuery);
@@ -141,16 +241,16 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This song does not have a valid audio file.'),
+          content: Text(
+            'This song does not have a valid audio file.',
+          ),
         ),
       );
       return;
     }
 
     try {
-      await _musicPlayer.audioPlayer.play(
-        UrlSource(url),
-      );
+      await _musicPlayer.audioPlayer.play(UrlSource(url));
     } catch (e) {
       debugPrint('Error playing search result: $e');
 
@@ -165,10 +265,8 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
   }
 
   Future<void> _seekTo(double value) async {
-    final seconds = value.toInt();
-
     await _musicPlayer.audioPlayer.seek(
-      Duration(seconds: seconds),
+      Duration(seconds: value.toInt()),
     );
   }
 
@@ -183,9 +281,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
   }
 
   dynamic _currentSong() {
-    if (_musicPlayer.songs.isEmpty) {
-      return null;
-    }
+    if (_musicPlayer.songs.isEmpty) return null;
 
     final index = _musicPlayer.currentIndex;
 
@@ -205,8 +301,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -238,6 +333,24 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
           ),
           onChanged: _searchSongs,
         ),
+
+        // Delete icon: always visible beside the search bar.
+        actions: [
+          IconButton(
+            tooltip: 'Clear all saved devotional songs',
+            icon: _isClearingSongs
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.delete_outline),
+            onPressed:
+                _isClearingSongs ? null : _clearAllSongs,
+          ),
+        ],
       ),
       body: _buildBody(context),
       floatingActionButton: FloatingActionButton(
@@ -317,11 +430,13 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
       itemBuilder: (context, index) {
         final song = _searchResults[index];
 
-        final title =
-            song is Map ? song['title']?.toString() ?? 'Unknown song' : 'Unknown song';
+        final title = song is Map
+            ? song['title']?.toString() ?? 'Unknown song'
+            : 'Unknown song';
 
-        final artist =
-            song is Map ? song['artist']?.toString() ?? 'Unknown artist' : 'Unknown artist';
+        final artist = song is Map
+            ? song['artist']?.toString() ?? 'Unknown artist'
+            : 'Unknown artist';
 
         return Card(
           child: ListTile(
@@ -330,8 +445,9 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                   Theme.of(context).colorScheme.primaryContainer,
               child: Icon(
                 Icons.music_note,
-                color:
-                    Theme.of(context).colorScheme.onPrimaryContainer,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onPrimaryContainer,
               ),
             ),
             title: Text(
@@ -411,13 +527,12 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
     final totalSeconds =
         _totalDuration.inSeconds.toDouble();
 
-    final currentSeconds =
-        _currentPosition.inSeconds
-            .toDouble()
-            .clamp(
-              0.0,
-              totalSeconds > 0 ? totalSeconds : 1.0,
-            );
+    final currentSeconds = _currentPosition.inSeconds
+        .toDouble()
+        .clamp(
+          0.0,
+          totalSeconds > 0 ? totalSeconds : 1.0,
+        );
 
     return SafeArea(
       child: Center(
@@ -431,7 +546,6 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 24),
-
                 Container(
                   width: 150,
                   height: 150,
@@ -445,9 +559,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                     color: colorScheme.onPrimaryContainer,
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
                 Text(
                   title,
                   textAlign: TextAlign.center,
@@ -458,9 +570,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 Text(
                   artist,
                   textAlign: TextAlign.center,
@@ -470,9 +580,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
                 Slider(
                   value: currentSeconds,
                   max: totalSeconds > 0 ? totalSeconds : 1.0,
@@ -482,7 +590,6 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                           _seekTo(value);
                         },
                 ),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -506,9 +613,7 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -518,13 +623,9 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                       onPressed: _musicPlayer.songs.length > 1
                           ? _musicPlayer.previousSong
                           : null,
-                      icon: const Icon(
-                        Icons.skip_previous,
-                      ),
+                      icon: const Icon(Icons.skip_previous),
                     ),
-
                     const SizedBox(width: 12),
-
                     FilledButton(
                       onPressed: _musicPlayer.songs.isEmpty
                           ? null
@@ -540,22 +641,17 @@ class _DevotionalMusicScreenState extends State<DevotionalMusicScreen> {
                         size: 34,
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     IconButton(
                       tooltip: 'Next song',
                       iconSize: 34,
                       onPressed: _musicPlayer.songs.length > 1
                           ? _playNextSong
                           : null,
-                      icon: const Icon(
-                        Icons.skip_next,
-                      ),
+                      icon: const Icon(Icons.skip_next),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 24),
               ],
             ),

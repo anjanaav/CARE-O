@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -14,7 +15,6 @@ class LocalSongListService {
 
       if (await file.exists()) {
         final content = await file.readAsString();
-
         final decoded = json.decode(content);
 
         if (decoded is List) {
@@ -35,11 +35,23 @@ class LocalSongListService {
     try {
       final file = await FileManager.getLocalFile();
 
-      await file.writeAsString(
-        json.encode(songs),
-      );
+      await file.writeAsString(json.encode(songs));
     } catch (e) {
       debugPrint('Error saving songs: $e');
+      rethrow;
+    }
+  }
+
+  /// Clears all saved song entries without deleting the original audio files.
+  Future<void> clearSongs() async {
+    final previousSongs = List<dynamic>.from(songs);
+
+    try {
+      songs.clear();
+      await saveSongs();
+    } catch (e) {
+      songs = previousSongs;
+      debugPrint('Error clearing devotional songs: $e');
       rethrow;
     }
   }
@@ -66,8 +78,7 @@ class LocalSongListService {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
-          final theme = Theme.of(dialogContext);
-          final colorScheme = theme.colorScheme;
+          final colorScheme = Theme.of(dialogContext).colorScheme;
 
           return AlertDialog(
             title: const Text('Add New Song'),
@@ -77,8 +88,7 @@ class LocalSongListService {
                 children: [
                   TextField(
                     controller: titleController,
-                    textCapitalization:
-                        TextCapitalization.words,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       labelText: 'Song Title',
                       prefixIcon: Icon(Icons.music_note),
@@ -87,8 +97,7 @@ class LocalSongListService {
                   const SizedBox(height: 12),
                   TextField(
                     controller: artistController,
-                    textCapitalization:
-                        TextCapitalization.words,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       labelText: 'Artist Name',
                       prefixIcon: Icon(Icons.person),
@@ -106,14 +115,11 @@ class LocalSongListService {
               ),
               FilledButton(
                 onPressed: () async {
-                  final title =
-                      titleController.text.trim();
-                  final artist =
-                      artistController.text.trim();
+                  final title = titleController.text.trim();
+                  final artist = artistController.text.trim();
 
                   if (title.isEmpty || artist.isEmpty) {
-                    ScaffoldMessenger.of(dialogContext)
-                        .showSnackBar(
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
                         content: Text(
                           'Please enter both song title and artist name.',
@@ -136,25 +142,27 @@ class LocalSongListService {
 
                     Navigator.pop(dialogContext);
 
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text(
-                          'Song added successfully.',
-                        ),
-                        backgroundColor:
-                            colorScheme.primary,
+                        content: const Text('Song added successfully.'),
+                        backgroundColor: colorScheme.primary,
                       ),
                     );
                   } catch (e) {
+                    // Remove the unsaved entry from the in-memory list.
+                    if (songs.isNotEmpty &&
+                        songs.last is Map &&
+                        songs.last['url'] == filePath &&
+                        songs.last['title'] == title &&
+                        songs.last['artist'] == artist) {
+                      songs.removeLast();
+                    }
+
                     if (!dialogContext.mounted) return;
 
-                    ScaffoldMessenger.of(dialogContext)
-                        .showSnackBar(
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                          'Unable to save the song.',
-                        ),
+                        content: Text('Unable to save the song.'),
                       ),
                     );
                   }
