@@ -1,51 +1,60 @@
 
-# CARE-O — Senior Citizen Care and Wellness App
+# CARE-O — Senior Citizen Care App
 
-CARE-O is a Flutter-based mobile application designed to support senior citizens through wellness activities, everyday assistance, entertainment, and family connectivity.
+CARE-O is a Flutter-based mobile application concept designed to support senior citizens through wellness activities, medication reminders, entertainment, and family connection.
 
-## Overview
+The goal is to make everyday digital support more accessible and engaging for older adults.
 
-CARE-O brings together care and wellness features in one mobile application, with an emphasis on making everyday activities more accessible and engaging for older adults.
+## Project overview
+
+Older adults may benefit from simple tools that encourage healthy routines, relaxation, entertainment, and communication with family or caregivers. CARE-O brings these ideas together in one mobile application.
 
 ## Features
 
-The project includes modules for the following areas. Confirm each feature's implementation status in the current code before describing it as fully functional.
+The project is organized around the following modules:
 
-- **Health and Wellness:** Wellness activities and exercise-related content.
-- **Meditation and Medication Reminders:** Meditation resources and reminder-related functionality.
-- **Social Connection:** Features intended to encourage interaction and connection.
-- **Music Player:** Devotional songs and audio playback.
-- **Games and Entertainment:** Activities for recreation and engagement.
-- **Guardian Control:** Features intended to support guardian and senior connectivity.
-- **Helpline:** Access to help-related information or services.
+- **Health and Wellness:** A place for health-related information and wellness activities.
+- **Meditation and Medication Reminders:** Helps users keep track of routines and reminders.
+- **Social Connection:** Supports engagement and connection with others.
+- **Devotional Music Player:** Provides devotional music for listening and relaxation.
+- **Games and Entertainment:** Offers activities intended to keep users engaged.
+- **Guardian Control:** A module intended to support family or guardian involvement.
+- **Helpline:** Provides a dedicated area for help-related information.
 
-## Technology Stack
+> Feature availability depends on the implementation and configuration in the current source code. Not every planned feature should be considered production-ready without testing.
 
-| Technology | Purpose |
-|---|---|
-| Flutter | Mobile application framework |
-| Dart | Application programming language |
-| Firebase Authentication | Authentication services |
-| Cloud Firestore | Cloud database |
-| Flutter Local Notifications | Local notification functionality |
-| Riverpod | State management |
-| Audio and video packages | Media playback |
+## Technology stack
 
-The repository also includes Firebase configuration and security-related files. The availability of each service depends on its configuration and implementation.
+- **Flutter**
+- **Dart**
+- **Firebase** for the app features configured in the project
 
-## Getting Started
+## Repository structure
+
+```text
+CARE-O/
+├── android/
+├── ios/
+├── lib/                # Flutter application source
+├── test/               # Application tests
+├── web/
+├── windows/
+├── linux/
+├── macos/
+├── pubspec.yaml        # Flutter dependencies and configuration
+└── README.md
+```
+
+## Getting started
 
 ### Prerequisites
 
-Before running CARE-O, install:
-
 - Flutter SDK
 - Dart SDK (included with Flutter)
-- Android Studio or Visual Studio Code
-- An Android emulator or compatible device
-- A Firebase project, if required by the application configuration
+- Android Studio or another supported development environment
+- A configured Firebase project if required by the app's enabled features
 
-### Installation
+### Setup
 
 1. Clone the repository:
 
@@ -59,74 +68,45 @@ Before running CARE-O, install:
    cd CARE-O
    ```
 
-3. Install Flutter dependencies:
+3. Install dependencies:
 
    ```bash
    flutter pub get
    ```
 
-4. Check the Firebase configuration required by the project. Configure your own Firebase project if necessary.
+4. Review the Firebase configuration and environment-specific setup required by the project.
 
-5. Run the application:
+5. Run the app on a supported device or emulator:
 
    ```bash
    flutter run
    ```
 
-### Run Tests
+## Testing
 
-To run the available Flutter tests:
+Run the Flutter test suite with:
 
 ```bash
 flutter test
 ```
 
-To check the Dart code for common issues:
+The command requires a working Flutter SDK. Test results should be reported only after running the tests in the relevant environment.
 
-```bash
-flutter analyze
-```
+## Project recognition
 
-Record the actual results after running these commands in your development environment.
+CARE-O received **Second Prize at the Future25 Project Exhibition (2025)**, if reflected correctly in the project's award documentation.
 
-## Firebase Configuration
+## Future improvements
 
-CARE-O uses Firebase-related packages and configuration files.
+- Improve accessibility and ease of navigation for older adults.
+- Test reminder and guardian-related workflows.
+- Strengthen error handling and usability.
+- Validate Firebase configuration and data access rules.
+- Add screenshots and a demonstration of the implemented features.
 
-Depending on the features being tested, you may need to configure Firebase Authentication, Cloud Firestore, and any other required services.
+## Author
 
-- Use your own Firebase project configuration.
-- Verify that the required authentication methods are enabled.
-- Review Firestore rules and indexes before deployment.
-- Never commit service-account private keys or other secrets to GitHub.
+**Anjana A V**
 
-## Project Structure
-
-| Directory / File | Purpose |
-|---|---|
-| `lib/` | Flutter application source code |
-| `android/` | Android-specific project files |
-| `ios/` | iOS-specific project files |
-| `web/` | Web platform files |
-| `assets/icon/` | Application assets, icons, and media |
-| `functions/` | Firebase-related functions |
-| `dataconnect/` | Firebase Data Connect-related files |
-| `test/` | Application tests |
-| `firebase.json` | Firebase project configuration |
-| `firestore.rules` | Firestore security rules |
-| `firestore.indexes.json` | Firestore index configuration |
-| `storage.rules` | Firebase Storage security rules |
-
-## Project Status
-
-CARE-O is an academic mini project developed to explore mobile application development for senior citizen care and wellness.
-
-Feature availability, Firebase integration, and platform compatibility should be verified against the current implementation. Not all listed modules or integrations should be assumed to be production-ready.
-
-## Future Improvements
-
-- Improve accessibility and usability for senior citizens.
-- Validate reminder and notification behavior across devices.
-- Test Firebase authentication and database access.
-- Improve error handling and application reliability.
-- Test the complete application workflow on a physical device.
+- GitHub: [anjanaav](https://github.com/anjanaav)
+- Project repository: [CARE-O](https://github.com/anjanaav/CARE-O)
