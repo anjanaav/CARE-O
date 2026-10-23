@@ -33,20 +33,6 @@ The project includes modules for the following areas. Confirm each feature's imp
 
 The repository also includes Firebase configuration and security-related files. The availability of each service depends on its configuration and implementation.
 
-## Screenshots
-
-Add screenshots of the actual application here.
-
-| Home Screen | Wellness and Meditation |
-|---|---|
-| Add `screenshots/home-screen.png` | Add `screenshots/wellness-screen.png` |
-
-| Music and Entertainment | Guardian Connectivity |
-|---|---|
-| Add `screenshots/music-screen.png` | Add `screenshots/guardian-screen.png` |
-
-Replace these placeholders with genuine screenshots from the running application. Remove any screenshot entry for a screen that is not implemented.
-
 ## Getting Started
 
 ### Prerequisites
