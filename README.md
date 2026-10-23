@@ -103,10 +103,5 @@ CARE-O received **Second Prize at the Future25 Project Exhibition (2025)**, if r
 - Strengthen error handling and usability.
 - Validate Firebase configuration and data access rules.
 - Add screenshots and a demonstration of the implemented features.
-
-## Author
-
-**Anjana A V**
-
-- GitHub: [anjanaav](https://github.com/anjanaav)
+naav](https://github.com/anjanaav)
 - Project repository: [CARE-O](https://github.com/anjanaav/CARE-O)
